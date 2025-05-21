@@ -144,26 +144,6 @@ if uploaded_file is not None:
         elif row['LineTaxable'] == 'TAX':
             df1.at[index, 'LineItem'] = 'Sales of Product'
 
-    # Verify totals from original excel files match updated totals
-
-    # # Perform checks
-    # line_amount_check = df1['LineAmount'].sum() == (exempt_charges + taxable_charges)
-    # tax_amt_check = df1['TaxAmt'].sum() == tax_charged
-    # total_charged_check = df1['Total Charged'].sum() == total_charged
-
-    # # Print the results of the checks
-    # print("Line Amount Check:", line_amount_check)
-    # print("Tax Amount Check:", tax_amt_check)
-    # print("Total Charged Check:", total_charged)
-
-    # # Additional print statements to see actual values if checks fail
-    # if not line_amount_check:
-    #     print("Actual Line Amount Sum:", df1['LineAmount'].sum(), "Expected:", exempt_charges + taxable_charges)
-    # if not tax_amt_check:
-    #     print("Actual Tax Amount Sum:", df1['TaxAmt'].sum(), "Expected:", tax_charged)
-    # if not total_charged_check:
-    #     print("Actual Total Charged Sum:", df1['Total Charged'].sum(), "Expected:", total_charged)
-
     # Remove the 'Location' column
     df1 = df1.drop(columns='Location')
 
@@ -210,30 +190,6 @@ if uploaded_file is not None:
 
     # Define the filename using the quarter and year
     file_path = f'Q{quarter}-{year}-Invoices and Payments for Import.xlsx'
-
-    # # Write both DataFrames to the same Excel file
-    # with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
-    #     # Write df1 to the first worksheet named 'Invoices'
-    #     df1.to_excel(writer, sheet_name='Invoices', index=False)
-    #     # Write df2 to the second worksheet named 'Payments'
-    #     df2.to_excel(writer, sheet_name='Payments', index=False)
-        
-    #     # Access the workbook and worksheets
-    #     workbook = writer.book
-    #     worksheet_invoices = writer.sheets['Invoices']
-    #     worksheet_payments = writer.sheets['Payments']
-
-    #     # Define the currency format
-    #     currency_format = workbook.add_format({'num_format': '$#,##0.00'})
-
-    #     # Apply the currency format to specific columns in 'Invoices'
-    #     worksheet_invoices.set_column('D:D', None, currency_format)  # LineAmount
-    #     worksheet_invoices.set_column('E:E', None, currency_format)  # Taxable Charges
-    #     worksheet_invoices.set_column('F:F', None, currency_format)  # TaxAmt
-    #     worksheet_invoices.set_column('G:G', None, currency_format)  # Total Charged
-
-    #     # Apply the currency format to the 'LineAmount' column in 'Payments'
-    #     worksheet_payments.set_column('G:G', None, currency_format)  # LineAmount
 
     # Create a buffer to save the processed Excel file
     output = io.BytesIO()
