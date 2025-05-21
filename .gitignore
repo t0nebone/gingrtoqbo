@@ -30,6 +30,7 @@ wheels/
 # Jupyter Notebook
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+*.ipynb
 
 # Excel files and data
 *.xlsx
@@ -51,6 +52,7 @@ Processed_*.xlsx
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.sh
 
 # IDE specific
 .idea/
