@@ -31,9 +31,14 @@ wheels/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Excel files
+# Excel files and data
+*.xlsx
+*.xls
 ~$*.xlsx
 ~$*.xls
+gingrfile/
+Processed_*.xlsx
+*Invoices and Payments for Import.xlsx
 
 # Environment variables
 .env
