@@ -1,6 +1,7 @@
 # Project-specific directories
 gingr_api_to_qbo/
 myenv/
+venv/
 output/
 .ipynb_checkpoints/
 
