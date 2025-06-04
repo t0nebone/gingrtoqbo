@@ -4,7 +4,13 @@ myenv/
 venv/
 output/
 .ipynb_checkpoints/
-*.ipynb
+original_files/
+processed_files/
+raw_files/
+data/
+reports/
+logs/
+*.Spotlight
 
 # Python
 __pycache__/
@@ -31,7 +37,6 @@ wheels/
 # Jupyter Notebook
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
-*.ipynb
 
 # Excel files and data
 *.xlsx
@@ -53,7 +58,6 @@ Processed_*.xlsx
 .Trashes
 ehthumbs.db
 Thumbs.db
-*.sh
 
 # IDE specific
 .idea/

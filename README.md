@@ -29,7 +29,7 @@ This application allows users to:
 
 ```bash
 # Clone the repository
-git clone https://github.com/t0nebone/gingrtoqbo.git
+git clone https://github.com/yourusername/gingrtoqbo.git
 cd gingrtoqbo
 
 # Create a virtual environment
