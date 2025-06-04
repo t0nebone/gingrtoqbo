@@ -50,8 +50,12 @@ if uploaded_file is not None:
 
     # Extract the year from the 'Invoice Opened Date' column
     # Convert the column to datetime if it's not already
-    df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date'])
-
+    try:
+        df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date']).dt.date
+    except Exception as e:
+        st.error(f"Error converting Invoice Opened Date: {e}")
+        df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date'])
+    
     # Get the year from the first row of the 'Invoice Opened Date' column
     year = df2['Invoice Opened Date'].iloc[0].year
 
@@ -64,11 +68,23 @@ if uploaded_file is not None:
     df1['LineItem'] = None
 
     # Clean up date and set format
-    # Extract the MM/DD part using regex and create a complete date with a year placeholder (2024 in this case)
-    df1['TxnDate'] = pd.to_datetime(df1['TxnDate'].str.extract(r'(\d{1,2}/\d{1,2})')[0] + f'/{year}', format='%m/%d/%Y')
-
-    # Convert the datetime object to the desired format M/DD/YYYY
-    df1['TxnDate'] = df1['TxnDate'].dt.strftime('%-m/%d/%Y')
+    # Extract the MM/DD part using regex and create a complete date with a year placeholder
+    try:
+        # Extract date part and convert to datetime
+        date_part = df1['TxnDate'].str.extract(r'(\d{1,2}/\d{1,2})')[0] + f'/{year}'
+        df1['TxnDate'] = pd.to_datetime(date_part, format='%m/%d/%Y').dt.date
+        
+        # Convert the datetime object to the desired format M/DD/YYYY
+        # Using %#m on Windows or %-m on Unix for month without leading zeros
+        import platform
+        if platform.system() == 'Windows':
+            df1['TxnDate'] = df1['TxnDate'].apply(lambda x: x.strftime('%#m/%d/%Y'))
+        else:
+            df1['TxnDate'] = df1['TxnDate'].apply(lambda x: x.strftime('%-m/%d/%Y'))
+    except Exception as e:
+        st.error(f"Error formatting TxnDate: {e}")
+        # Fallback to standard format if error occurs
+        df1['TxnDate'] = pd.to_datetime(date_part, format='%m/%d/%Y').dt.strftime('%m/%d/%Y')
 
     # Remove all lines with 0 in the 'Total Charged'
     # Remove rows where 'Total Charged' is 0
@@ -182,13 +198,24 @@ if uploaded_file is not None:
     df2['InvoiceApplyTo'] = df2['InvoiceApplyTo'].astype(str)
 
     # Convert Invoice Opened Date and TxnDate to M/DD/YYYY format
-    # Convert the columns to datetime format first
-    df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date'])
-    df2['TxnDate'] = pd.to_datetime(df2['TxnDate'])
-
-    # Format the columns to 'M/DD/YYYY'
-    df2['Invoice Opened Date'] = df2['Invoice Opened Date'].dt.strftime('%-m/%d/%Y')
-    df2['TxnDate'] = df2['TxnDate'].dt.strftime('%-m/%d/%Y')
+    try:
+        # Convert the columns to datetime format first, keeping only the date part
+        df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date']).dt.date
+        df2['TxnDate'] = pd.to_datetime(df2['TxnDate']).dt.date
+        
+        # Format the columns to 'M/DD/YYYY' - handle platform differences
+        import platform
+        if platform.system() == 'Windows':
+            df2['Invoice Opened Date'] = df2['Invoice Opened Date'].apply(lambda x: x.strftime('%#m/%d/%Y'))
+            df2['TxnDate'] = df2['TxnDate'].apply(lambda x: x.strftime('%#m/%d/%Y'))
+        else:
+            df2['Invoice Opened Date'] = df2['Invoice Opened Date'].apply(lambda x: x.strftime('%-m/%d/%Y'))
+            df2['TxnDate'] = df2['TxnDate'].apply(lambda x: x.strftime('%-m/%d/%Y'))
+    except Exception as e:
+        st.error(f"Error formatting payment dates: {e}")
+        # Fallback to standard format
+        df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date']).dt.strftime('%m/%d/%Y')
+        df2['TxnDate'] = pd.to_datetime(df2['TxnDate']).dt.strftime('%m/%d/%Y')
 
     # Assign Undeposited funds or Petty Cash to DepositToAccount column
     # Update the 'DepositToAccount' column based on the conditions in 'PaymentMethod'
@@ -200,13 +227,35 @@ if uploaded_file is not None:
 
     # Save the updated Sheets to new excel file
     # Convert 'TxnDate' in df1 and relevant date columns in df2 to datetime format
-    df1['TxnDate'] = pd.to_datetime(df1['TxnDate'])
-    df2['TxnDate'] = pd.to_datetime(df2['TxnDate'])
+    try:
+        # Ensure dates are datetime objects for quarter/year extraction, but keep only date part
+        df1['TxnDate'] = pd.to_datetime(df1['TxnDate']).dt.date
+        df2['TxnDate'] = pd.to_datetime(df2['TxnDate']).dt.date
+    except Exception as e:
+        st.error(f"Error converting dates for file naming: {e}")
+        # Fallback
+        df1['TxnDate'] = pd.to_datetime(df1['TxnDate'])
+        df2['TxnDate'] = pd.to_datetime(df2['TxnDate'])
 
     # Get the quarter and year from the first row of df1
     first_date = df1['TxnDate'].iloc[0]
-    quarter = (first_date.month - 1) // 3 + 1
-    year = first_date.year
+    # Handle both date objects and strings
+    if isinstance(first_date, str):
+        try:
+            first_date = pd.to_datetime(first_date).date()
+        except:
+            # If conversion fails, try to parse string directly
+            pass
+    
+    # Extract month and year safely
+    if hasattr(first_date, 'month'):
+        quarter = (first_date.month - 1) // 3 + 1
+        year = first_date.year
+    else:
+        # Default to current quarter/year if extraction fails
+        current_date = datetime.now()
+        quarter = (current_date.month - 1) // 3 + 1
+        year = current_date.year
 
     # Define the filename using the quarter and year
     file_path = f'Q{quarter}-{year}-Invoices and Payments for Import.xlsx'
@@ -237,24 +286,64 @@ if uploaded_file is not None:
 
     # Create a buffer to save the processed Excel file
     output = io.BytesIO()
+    
+    # Remove the Taxable Charges column from invoices
+    df1 = df1.drop(columns='Taxable Charges')
+    
+    # Ensure date columns are properly formatted before Excel export
+    # This helps Excel recognize them as dates
+    try:
+        # Force TxnDate in df1 to be date strings in M/D/YYYY format
+        if 'TxnDate' in df1.columns:
+            df1['TxnDate'] = pd.to_datetime(df1['TxnDate']).dt.strftime('%m/%d/%Y')
+            
+        # Force date columns in df2 to be date strings in M/D/YYYY format
+        if 'Invoice Opened Date' in df2.columns:
+            df2['Invoice Opened Date'] = pd.to_datetime(df2['Invoice Opened Date']).dt.strftime('%m/%d/%Y')
+        if 'TxnDate' in df2.columns:
+            df2['TxnDate'] = pd.to_datetime(df2['TxnDate']).dt.strftime('%m/%d/%Y')
+    except Exception as e:
+        st.warning(f"Final date formatting warning: {e}")
+        # Continue with existing format if conversion fails
+    
+    # Sort payments by RefNumber from smallest to largest
+    df2 = df2.sort_values(by='RefNumber')
+    
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df1.to_excel(writer, sheet_name='Invoices', index=False)
         df2.to_excel(writer, sheet_name='Payments', index=False)
 
-        # Access the workbook and apply formatting if needed
-        workbook = writer.book
-        worksheet_invoices = writer.sheets['Invoices']
-        worksheet_payments = writer.sheets['Payments']
+        try:
+            # Access the workbook and apply formatting if needed
+            workbook = writer.book
+            worksheet_invoices = writer.sheets['Invoices']
+            worksheet_payments = writer.sheets['Payments']
 
-        # Define the currency format
-        currency_format = workbook.add_format({'num_format': '$#,##0.00'})
+            # Define the currency format
+            currency_format = workbook.add_format({'num_format': '$#,##0.00'})
 
-        # Apply formatting (update column ranges as needed)
-        worksheet_invoices.set_column('D:D', None, currency_format)
-        worksheet_invoices.set_column('E:E', None, currency_format)
-        worksheet_invoices.set_column('F:F', None, currency_format)
-        worksheet_invoices.set_column('G:G', None, currency_format)
-        worksheet_payments.set_column('G:G', None, currency_format)
+            # Apply currency formatting (update column ranges as needed)
+            worksheet_invoices.set_column('D:D', None, currency_format)
+            worksheet_invoices.set_column('E:E', None, currency_format)
+            worksheet_invoices.set_column('F:F', None, currency_format)
+            worksheet_invoices.set_column('G:G', None, currency_format)
+            worksheet_payments.set_column('G:G', None, currency_format)
+            
+            # Create a robust date format that explicitly shows only the date
+            # Using m/d/yyyy ensures consistent display across systems
+            date_format = workbook.add_format({
+                'num_format': 'm/d/yyyy',
+                'align': 'center'
+            })
+            
+            # Apply date formatting to date columns
+            worksheet_invoices.set_column('C:C', 12, date_format)  # TxnDate
+            worksheet_payments.set_column('D:D', 12, date_format)  # Invoice Opened Date
+            worksheet_payments.set_column('E:E', 12, date_format)  # TxnDate
+        
+        except Exception as e:
+            st.warning(f"Error applying Excel formatting: {e}")
+            st.info("The file will still be generated, but some formatting may not be applied correctly.")
 
     # Save the Excel file and create a download button
     st.download_button(
