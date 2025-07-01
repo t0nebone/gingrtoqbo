@@ -1,0 +1,7 @@
+
+> backend@1.0.0 start
+> node server.js
+
+[dotenv@17.0.1] injecting env (3) from .env – [tip] encrypt with dotenvx: https://dotenvx.com
+🚀 Gingr Operations Dashboard API running on port 5001
+📊 Dashboard API available at http://localhost:5001/api
